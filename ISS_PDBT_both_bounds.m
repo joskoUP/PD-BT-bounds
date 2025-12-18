@@ -191,7 +191,7 @@ for scale_count = 1:length(scaling_factors)
     semilogy(r_vals,F_Dist_TL,'-','Color','#DC267F','LineWidth',3)
     semilogy(r_vals,F_Dist_inf,'-','Color','#648FFF','LineWidth',2)
     xlim([0 rmax])
-    ylim([1e-6 1e+7])
+    ylim([1e-6 1e+5])
     set(gca,'fontsize',13,'ticklabelinterpreter','latex')
     if scale_count==1
         title('Posterior covariance error and bound','interpreter','latex','fontsize',20)
@@ -209,7 +209,7 @@ for scale_count = 1:length(scaling_factors)
     semilogy(r_vals,mean_Dist_TL,'-','Color','#DC267F','LineWidth',3);
     semilogy(r_vals,mean_Dist_inf,'-','Color','#648FFF','LineWidth',2);
     xlim([0 rmax])
-    ylim([1e-6 1e+7])
+    ylim([1e-6 1e+5])
     set(gca,'fontsize',13,'ticklabelinterpreter','latex')
     ylabel(['$\mathbf{\Gamma}_\mathrm{pr}=$',num2str(scaling_factors(scale_count)^2),'$\cdot\mathbf{\Gamma}$'],'interpreter','latex','fontsize',13)
     if scale_count==1

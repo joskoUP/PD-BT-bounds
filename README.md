@@ -9,7 +9,7 @@ The work in [1] proposes error bounds for the posterior mean and covariance appr
 This work uses code from [2] (to be found at [https://github.com/joskoUP/PD-BT/](https://github.com/joskoUP/PD-BT/)).
 
 ## Examples
-To run this code, you need the MATLAB Control System Toolbox.
+To run this code, you need the MATLAB Control System Toolbox. The data file *iss1R.mat* was retrieved from [SLICOT](https://www.slicot.org/20-site/126-benchmark-examples-for-model-reduction).
 
 To generate Figure 1 from the paper, run the *ISS_PDBT_both_bounds.m* script.
 

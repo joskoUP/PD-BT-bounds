@@ -2,7 +2,7 @@
 
 This MATLAB repository contains code for the numerical results of the following paper:
 
-1. König, J., Lie, H. C. "[Posterior error bounds for prior-driven balancing in linear Gaussian inverse problems](put arXiv link here)."
+1. König, J., Lie, H. C. "[Posterior error bounds for prior-driven balancing in linear Gaussian inverse problems](http://arxiv.org/abs/2601.03971)".
 
 ## Summary
 The work in [1] proposes error bounds for the posterior mean and covariance approximation in linear Gaussian inverse problems, in which the forward model is reduced via prior-driven balanced truncation (PD-BT) [2]. Additionally, we include theoretical bounds and code for the time-limited version of PD-BT, comparing both bounds to the absolute errors in the numerical example given in this repository.

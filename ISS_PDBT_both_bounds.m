@@ -3,8 +3,16 @@
 % and PD-BT is taken from https://github.com/joskoUP/PD-BT. 
 % (Requires lyapchol from control system toolbox).
 
-clear; close all
-rng(1)
+%
+% Copyright (c) 2026, Josie König
+% All rights reserved.
+% License: BSD 3 - Clause License (see LICENSE)
+%
+
+clear;
+close all
+rng(1, "twister")
+
 %% define LTI model
 % ISS model
 load('iss1R.mat')

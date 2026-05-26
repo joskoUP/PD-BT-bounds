@@ -3,48 +3,50 @@
 % and PD-BT is taken from https://github.com/joskoUP/PD-BT. 
 % (Requires lyapchol from control system toolbox).
 
-%
-% Copyright (c) 2026, Josie König
-% All rights reserved.
-% License: BSD 3 - Clause License (see LICENSE)
-%
-
 clear;
 close all
 rng(1, "twister")
 
 %% define LTI model
 % ISS model
-load('iss1R.mat')
-d           = size(A,1);
-d_out       = size(C,1);
-sig_obs     = [2.5e-3 5e-4 5e-4]';
+load('heat-cont.mat')
+spat_dim    = 50;
+A1          = full(A(1:spat_dim, 1:spat_dim));
+A           = kron(A1, eye(spat_dim)) + kron(eye(spat_dim), A1);
+d           = size(A, 1);
+C           = ones(1, d) / d;
+d_out       = size(C, 1);
+sig_obs     = 0.08;
 
 % define time frame (measurement times) for the inference problem
-T               = 8; % end time
-dt_obs          = 0.1; % difference between measurements   
-n               = round(T/dt_obs); % number of measurements
-sig_obs_long    = repmat(sig_obs,n,1);
-
-%% given low-rank prior - sample covariance of compatible covariance
-ensemble_size   = 90; % size of prior ensemble
-Lyap_solution   = lyapchol(A,B)'; % compatibility Lyapunov equation
-ensemble        = Lyap_solution * randn(d,ensemble_size); 
-% ensemble drawn from compatible covariance 
-Gamma_pr        = cov(ensemble'); % prior is ensemble covariance
-prior_rank      = rank(Gamma_pr); % rank of prior covariance
-% compute a low-rank factor of the prior covariance
-[X,D]           = eig(Gamma_pr); % eigendecompostition of prior
-[~,ind]         = sort(diag(D),'descend'); % get important directions
-Ds              = D(ind,ind);
-Xs              = X(:,ind);
-Gamma_pr_root   = Xs(:,1:prior_rank)*sqrt(Ds(1:prior_rank,1:prior_rank));
+T               = 5; % end time
+dt_obs          = 0.2; % difference between measurements   
+n               = round(T / dt_obs); % number of measurements
+sig_obs_long    = repmat(sig_obs, n, 1);
 
 figure; clf
-%% set up experiments with differently scaled priors
-scaling_factors = [0.1,1,10];
+%% set up experiments with different prior covariances
+scaling_factors = [0.001,0.01,0.1];
 for scale_count = 1:length(scaling_factors)
-    L_pr    = scaling_factors(scale_count)*Gamma_pr_root;
+    x = linspace(0, 1, d)';
+    % Gaussian Covariance Kernel
+    sigma_f         = 1;   % Signal standard deviation (amplitude)
+    length_scale    = 1;   % Length scale (corresponds to diffusion time)
+    % Create a meshgrid for the coordinates
+    [X1, X2] = meshgrid(x, x);
+    % Compute the Squared Exponential / Gaussian Kernel
+    Gamma_pr_full       = (sigma_f)^2 * exp(-0.5 * ((X1 - X2) / (scaling_factors(scale_count)*length_scale)).^2);
+    prior_rank          = rank(Gamma_pr_full); % rank of prior covariance
+    % compute a low-rank factor of the prior covariance
+    [X, D]              = eig(Gamma_pr_full); % eigendecomposition of prior
+    [~, ind]            = sort(diag(D), 'descend'); % get important directions
+    Ds                  = D(ind, ind);
+    Xs                  = X(:, ind);
+    Gamma_pr_root       = Xs(:, 1:prior_rank) ...
+                        * sqrt(Ds(1:prior_rank, 1:prior_rank));
+    indmax              = 30;
+
+    L_pr    = Gamma_pr_root;
     % prior for experiment is scaled version of Gamma_pr
 
     %% compute infinite noisy observability Gramian
@@ -95,7 +97,7 @@ for scale_count = 1:length(scaling_factors)
     PosMean_true    = PosCov_true*full_rhs;
     
     %% compute posterior approximations and errors
-    r_vals      = 1:2:(prior_rank/2);
+    r_vals      = 1:2:indmax;
     rmax        = max(r_vals);
     
     % prior-driven balancing (PD-BT)
@@ -157,7 +159,7 @@ for scale_count = 1:length(scaling_factors)
         Y_inf               = sylvester(A_inf',A11_inf,-C_inf'*C1_inf);
         Y2_inf              = Y_inf(r+1:d,:);
         delQ2_inf           = diag(delQ_inf(r+1:d));
-        Trace_vals_inf(rr)  = trace((L2_inf*L2_inf'+2*Y2_inf*A12_inf)*delQ2_inf);
+        Trace_vals_inf(rr)  = abs(trace((L2_inf*L2_inf'+2*Y2_inf*A12_inf)*delQ2_inf));
     
         %% time-limited PD-BT posterior quantities
         % PD-BT - generate reduced forward matrix G_TL
@@ -178,7 +180,7 @@ for scale_count = 1:length(scaling_factors)
         mean_TL         = PosCov_TL*(G_TLS./sig_obs_long)'*m_scaled;
         mean_Dist_TL(rr)= norm(mean_TL(:,1)-PosMean_true(:,1));
         
-        %% time-limited PD-BT - assemble necessary quantities for the output error bound
+        %% time-limited PD-BT - assemble necessary quantities for the outpur error bound
         L1      = L_pr_TL(1:r,:);
         A11     = A_TL(1:r,1:r);
         C1      = C_TL(:,1:r)./sig_obs;
@@ -188,7 +190,7 @@ for scale_count = 1:length(scaling_factors)
         % compute reduced Gramian
         right_side_r        = -L1*L1'+expm(A11*T)*(L1*L1')*expm(A11'*T);
         PTr                 = real(sylvester(A11,A11',right_side_r)); 
-        Trace_vals_TL(rr)   = trace(F*P*F')+trace(C1*PTr*C1')-2*trace(F*PTM*C1');
+        Trace_vals_TL(rr)   = abs(trace(F*P*F')+trace(C1*PTr*C1')-2*trace(F*PTM*C1'));
     end
     
     %% plots
@@ -199,7 +201,7 @@ for scale_count = 1:length(scaling_factors)
     semilogy(r_vals,F_Dist_TL,'-','Color','#DC267F','LineWidth',3)
     semilogy(r_vals,F_Dist_inf,'-','Color','#648FFF','LineWidth',2)
     xlim([0 rmax])
-    ylim([1e-6 1e+5])
+    ylim([1e-15 1e+4])
     set(gca,'fontsize',13,'ticklabelinterpreter','latex')
     if scale_count==1
         title('Posterior covariance error and bound','interpreter','latex','fontsize',20)
@@ -217,15 +219,17 @@ for scale_count = 1:length(scaling_factors)
     semilogy(r_vals,mean_Dist_TL,'-','Color','#DC267F','LineWidth',3);
     semilogy(r_vals,mean_Dist_inf,'-','Color','#648FFF','LineWidth',2);
     xlim([0 rmax])
-    ylim([1e-6 1e+5])
+    ylim([1e-15 1e+4])
     set(gca,'fontsize',13,'ticklabelinterpreter','latex')
-    ylabel(['$\mathbf{\Gamma}_\mathrm{pr}=$',num2str(scaling_factors(scale_count)^2),'$\cdot\mathbf{\Gamma}$'],'interpreter','latex','fontsize',13)
+    ylabel(['$\ell=$',num2str(scaling_factors(scale_count))],'interpreter','latex','fontsize',13)
     if scale_count==1
         title('Posterior mean error and bound','interpreter','latex','fontsize',20)
     end
     if scale_count==length(scaling_factors)
         xlabel('$r$','interpreter','latex','fontsize',13)
-        legend({'error bound PD-TLBT','error bound PD-BT','$\|\mathbf{\mu}_\mathrm{pos}-\hat{\mathbf{\mu}}_\mathrm{pos}\|_2$ PD-TLBT','$\|\mathbf{\mu}_\mathrm{pos}-\hat{\mathbf{\mu}}_\mathrm{pos}\|_2$ PD-BT'},'interpreter','latex','fontsize',13,'Location','best')
+        legend({'error bound PD.TLBT','error bound PD-BT','$\|\mathbf{\mu}_\mathrm{pos}-\hat{\mathbf{\mu}}_\mathrm{pos}\|_2$ PD-TLBT','$\|\mathbf{\mu}_\mathrm{pos}-\hat{\mathbf{\mu}}_\mathrm{pos}\|_2$ PD-BT'},'interpreter','latex','fontsize',13,'Location','best')
         legend boxoff
     end
 end
+cleanfigure;
+matlab2tikz('PDBT_bounds_heat.tex');

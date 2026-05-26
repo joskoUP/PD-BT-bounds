@@ -9,9 +9,11 @@ The work in [1] proposes error bounds for the posterior mean and covariance appr
 This work uses code from [2] (to be found at [https://github.com/joskoUP/PD-BT/](https://github.com/joskoUP/PD-BT/)).
 
 ## Examples
-To run this code, you need the MATLAB Control System Toolbox. The data file *iss1R.mat* was retrieved from [SLICOT](https://www.slicot.org/20-site/126-benchmark-examples-for-model-reduction).
+To run this code, you need the MATLAB Control System Toolbox. The data files *iss1R.mat* and *heat-cont.mat* were retrieved from [SLICOT](https://www.slicot.org/20-site/126-benchmark-examples-for-model-reduction).
 
 To generate Figure 1 from the paper, run the *ISS_PDBT_both_bounds.m* script.
+
+To generate Figure 2 from the paper, run the *heat_PDBT_both_bounds.m* script.
 
 ## References
 2. König, J., Qian, E., Freitag, M. A. "[Dimension and model reduction approaches for linear Bayesian inverse problems with rank-deficient prior covariances](http://arxiv.org/abs/2506.23892)."

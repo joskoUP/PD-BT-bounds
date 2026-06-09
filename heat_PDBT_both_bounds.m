@@ -1,6 +1,6 @@
-% This is a script to create plots for PD-(TL)BT for the ISS1R model and
-% the related posterior error bounds. The code for the benchmark example
-% and PD-BT is taken from https://github.com/joskoUP/PD-BT. 
+% This is a script to create plots for PD-(TL)BT for the 2D heat equation
+% and the related posterior error bounds. The code for the benchmark
+% example and PD-BT is taken from https://github.com/joskoUP/PD-BT. 
 % (Requires lyapchol from control system toolbox).
 
 clear;
@@ -8,13 +8,18 @@ close all
 rng(1, "twister")
 
 %% define LTI model
-% ISS model
-load('heat-cont.mat')
+% 2D heat equation
 spat_dim    = 50;
-A1          = full(A(1:spat_dim, 1:spat_dim));
+% spatial points considered for the heat equation system matrix, meaning
+% that the distance between 2 spatial points is h = 1/51
+
+% 1D heat equation matrix: 1/(h^2) * tridiag[1,-2,1]
+A1          = (spat_dim+1)^2*(diag(-2*ones(spat_dim, 1)) + ...
+            diag(ones(spat_dim-1, 1), 1) + diag(ones(spat_dim-1, 1), -1));
+% 2D heat equation matrix as Kronecker sum of 1D case and identity
 A           = kron(A1, eye(spat_dim)) + kron(eye(spat_dim), A1);
 d           = size(A, 1);
-C           = ones(1, d) / d;
+C           = ones(1, d) / d; % output is the mean temperature
 d_out       = size(C, 1);
 sig_obs     = 0.08;
 
@@ -26,17 +31,23 @@ sig_obs_long    = repmat(sig_obs, n, 1);
 
 figure; clf
 %% set up experiments with different prior covariances
-scaling_factors = [0.001,0.01,0.1];
+scaling_factors = [0.01,0.1,1];
 for scale_count = 1:length(scaling_factors)
-    x = linspace(0, 1, d)';
-    % Gaussian Covariance Kernel
+    % spatial points between 0 and 1, including the boundaries
+    x = linspace(0, 1, spat_dim+2)';
+    
+    % set up the Gaussian Covariance Kernel
     sigma_f         = 1;   % Signal standard deviation (amplitude)
     length_scale    = 1;   % Length scale (corresponds to diffusion time)
-    % Create a meshgrid for the coordinates
-    [X1, X2] = meshgrid(x, x);
-    % Compute the Squared Exponential / Gaussian Kernel
-    Gamma_pr_full       = (sigma_f)^2 * exp(-0.5 * ((X1 - X2) / (scaling_factors(scale_count)*length_scale)).^2);
+    % Create a meshgrid for the coordinates - without boundaries
+    [X1, X2] = meshgrid(x(2:spat_dim+1), x(2:spat_dim+1));
+    % Compute the Squared Exponential / Gaussian Kernel in one dimension
+    Gamma_factor        = (sigma_f)^2 * exp(-0.5 * ((X1 - X2) /...
+                        (scaling_factors(scale_count)*length_scale)).^2);
+    % 2D Gaussian kernel is Kronecker product of 1D Gaussian kernels
+    Gamma_pr_full       = kron(Gamma_factor,Gamma_factor);
     prior_rank          = rank(Gamma_pr_full); % rank of prior covariance
+
     % compute a low-rank factor of the prior covariance
     [X, D]              = eig(Gamma_pr_full); % eigendecomposition of prior
     [~, ind]            = sort(diag(D), 'descend'); % get important directions
@@ -44,10 +55,9 @@ for scale_count = 1:length(scaling_factors)
     Xs                  = X(:, ind);
     Gamma_pr_root       = Xs(:, 1:prior_rank) ...
                         * sqrt(Ds(1:prior_rank, 1:prior_rank));
-    indmax              = 30;
+    indmax              = 31;
 
     L_pr    = Gamma_pr_root;
-    % prior for experiment is scaled version of Gamma_pr
 
     %% compute infinite noisy observability Gramian
     % helper matrix    
@@ -151,7 +161,7 @@ for scale_count = 1:length(scaling_factors)
         mean_inf            = PosCov_inf*(G_infS./sig_obs_long)'*m_scaled;
         mean_Dist_inf(rr)   = norm(mean_inf-PosMean_true);
         
-        %% PD-BT - assemble necessary quantities for the outpur error bound
+        %% PD-BT - assemble necessary quantities for the output error bound
         L2_inf              = L_pr_inf(r+1:d,:);
         C1_inf              = C_inf(:,1:r)./sig_obs;
         A11_inf             = A_inf(1:r,1:r);
@@ -180,7 +190,7 @@ for scale_count = 1:length(scaling_factors)
         mean_TL         = PosCov_TL*(G_TLS./sig_obs_long)'*m_scaled;
         mean_Dist_TL(rr)= norm(mean_TL(:,1)-PosMean_true(:,1));
         
-        %% time-limited PD-BT - assemble necessary quantities for the outpur error bound
+        %% time-limited PD-BT - assemble necessary quantities for the output error bound
         L1      = L_pr_TL(1:r,:);
         A11     = A_TL(1:r,1:r);
         C1      = C_TL(:,1:r)./sig_obs;
@@ -201,7 +211,7 @@ for scale_count = 1:length(scaling_factors)
     semilogy(r_vals,F_Dist_TL,'-','Color','#DC267F','LineWidth',3)
     semilogy(r_vals,F_Dist_inf,'-','Color','#648FFF','LineWidth',2)
     xlim([0 rmax])
-    ylim([1e-15 1e+4])
+    ylim([1e-16 1e+3])
     set(gca,'fontsize',13,'ticklabelinterpreter','latex')
     if scale_count==1
         title('Posterior covariance error and bound','interpreter','latex','fontsize',20)
@@ -219,7 +229,7 @@ for scale_count = 1:length(scaling_factors)
     semilogy(r_vals,mean_Dist_TL,'-','Color','#DC267F','LineWidth',3);
     semilogy(r_vals,mean_Dist_inf,'-','Color','#648FFF','LineWidth',2);
     xlim([0 rmax])
-    ylim([1e-15 1e+4])
+    ylim([1e-16 1e+3])
     set(gca,'fontsize',13,'ticklabelinterpreter','latex')
     ylabel(['$\ell=$',num2str(scaling_factors(scale_count))],'interpreter','latex','fontsize',13)
     if scale_count==1
@@ -227,9 +237,7 @@ for scale_count = 1:length(scaling_factors)
     end
     if scale_count==length(scaling_factors)
         xlabel('$r$','interpreter','latex','fontsize',13)
-        legend({'error bound PD.TLBT','error bound PD-BT','$\|\mathbf{\mu}_\mathrm{pos}-\hat{\mathbf{\mu}}_\mathrm{pos}\|_2$ PD-TLBT','$\|\mathbf{\mu}_\mathrm{pos}-\hat{\mathbf{\mu}}_\mathrm{pos}\|_2$ PD-BT'},'interpreter','latex','fontsize',13,'Location','best')
+        legend({'error bound PD-TLBT','error bound PD-BT','$\|\mathbf{\mu}_\mathrm{pos}-\hat{\mathbf{\mu}}_\mathrm{pos}\|_2$ PD-TLBT','$\|\mathbf{\mu}_\mathrm{pos}-\hat{\mathbf{\mu}}_\mathrm{pos}\|_2$ PD-BT'},'interpreter','latex','fontsize',13,'Location','best')
         legend boxoff
     end
 end
-cleanfigure;
-matlab2tikz('PDBT_bounds_heat.tex');

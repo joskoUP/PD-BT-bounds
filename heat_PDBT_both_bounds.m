@@ -14,7 +14,7 @@ spat_dim    = 50;
 % that the distance between 2 spatial points is h = 1/51
 
 % 1D heat equation matrix: 1/(h^2) * tridiag[1,-2,1]
-A1          = (spat_dim+1)^2*(diag(-2*ones(spat_dim, 1)) + ...
+A1          = 0.1*(spat_dim+1)^2*(diag(-2*ones(spat_dim, 1)) + ...
             diag(ones(spat_dim-1, 1), 1) + diag(ones(spat_dim-1, 1), -1));
 % 2D heat equation matrix as Kronecker sum of 1D case and identity
 A           = kron(A1, eye(spat_dim)) + kron(eye(spat_dim), A1);
@@ -139,7 +139,7 @@ for scale_count = 1:length(scaling_factors)
     mean_Dist_inf   = zeros(1,length(r_vals)); % PD-BT error on first mean (full Space)
     Trace_vals_TL   = zeros(1,length(r_vals)); % trace for PD-TLBT error bound
     Trace_vals_inf  = zeros(1,length(r_vals)); % trace for PD-BT error bound
-    
+
     for rr = 1:length(r_vals)
         r = r_vals(rr);
         %% PD-BT posterior quantities
@@ -211,7 +211,7 @@ for scale_count = 1:length(scaling_factors)
     semilogy(r_vals,F_Dist_TL,'-','Color','#DC267F','LineWidth',3)
     semilogy(r_vals,F_Dist_inf,'-','Color','#648FFF','LineWidth',2)
     xlim([0 rmax])
-    ylim([1e-16 1e+3])
+    ylim([1e-14 1e+3])
     set(gca,'fontsize',13,'ticklabelinterpreter','latex')
     if scale_count==1
         title('Posterior covariance error and bound','interpreter','latex','fontsize',20)
@@ -229,7 +229,7 @@ for scale_count = 1:length(scaling_factors)
     semilogy(r_vals,mean_Dist_TL,'-','Color','#DC267F','LineWidth',3);
     semilogy(r_vals,mean_Dist_inf,'-','Color','#648FFF','LineWidth',2);
     xlim([0 rmax])
-    ylim([1e-16 1e+3])
+    ylim([1e-14 1e+3])
     set(gca,'fontsize',13,'ticklabelinterpreter','latex')
     ylabel(['$\ell=$',num2str(scaling_factors(scale_count))],'interpreter','latex','fontsize',13)
     if scale_count==1

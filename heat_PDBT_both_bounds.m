@@ -13,7 +13,7 @@ spat_dim    = 50;
 % spatial points considered for the heat equation system matrix, meaning
 % that the distance between 2 spatial points is h = 1/51
 
-% 1D heat equation matrix: 1/(h^2) * tridiag[1,-2,1]
+% 1D heat equation matrix: alpha(=0.1) * 1/(h^2) * tridiag[1,-2,1]
 A1          = 0.1*(spat_dim+1)^2*(diag(-2*ones(spat_dim, 1)) + ...
             diag(ones(spat_dim-1, 1), 1) + diag(ones(spat_dim-1, 1), -1));
 % 2D heat equation matrix as Kronecker sum of 1D case and identity
@@ -215,11 +215,11 @@ for scale_count = 1:length(scaling_factors)
     set(gca,'fontsize',13,'ticklabelinterpreter','latex')
     if scale_count==1
         title('Posterior covariance error and bound','interpreter','latex','fontsize',20)
+        legend({'error bound PD-TLBT','error bound PD-BT','$\|\mathbf{\Gamma}_\mathrm{pos}-\hat{\mathbf{\Gamma}}_\mathrm{pos}\|_F$ PD-TLBT','$\|\mathbf{\Gamma}_\mathrm{pos}-\hat{\mathbf{\Gamma}}_\mathrm{pos}\|_F$ PD-BT'},'interpreter','latex','fontsize',13,'Location','best')
+        legend boxoff
     end
     if scale_count==length(scaling_factors)
         xlabel('$r$','interpreter','latex','fontsize',13)
-        legend({'error bound PD-TLBT','error bound PD-BT','$\|\mathbf{\Gamma}_\mathrm{pos}-\hat{\mathbf{\Gamma}}_\mathrm{pos}\|_F$ PD-TLBT','$\|\mathbf{\Gamma}_\mathrm{pos}-\hat{\mathbf{\Gamma}}_\mathrm{pos}\|_F$ PD-BT'},'interpreter','latex','fontsize',13,'Location','best')
-        legend boxoff
     end
 
     % plot PD-BT posterior mean error bound    
@@ -234,10 +234,10 @@ for scale_count = 1:length(scaling_factors)
     ylabel(['$\ell=$',num2str(scaling_factors(scale_count))],'interpreter','latex','fontsize',13)
     if scale_count==1
         title('Posterior mean error and bound','interpreter','latex','fontsize',20)
+        legend({'error bound PD-TLBT','error bound PD-BT','$\|\mathbf{\mu}_\mathrm{pos}-\hat{\mathbf{\mu}}_\mathrm{pos}\|_2$ PD-TLBT','$\|\mathbf{\mu}_\mathrm{pos}-\hat{\mathbf{\mu}}_\mathrm{pos}\|_2$ PD-BT'},'interpreter','latex','fontsize',13,'Location','best')
+        legend boxoff
     end
     if scale_count==length(scaling_factors)
         xlabel('$r$','interpreter','latex','fontsize',13)
-        legend({'error bound PD-TLBT','error bound PD-BT','$\|\mathbf{\mu}_\mathrm{pos}-\hat{\mathbf{\mu}}_\mathrm{pos}\|_2$ PD-TLBT','$\|\mathbf{\mu}_\mathrm{pos}-\hat{\mathbf{\mu}}_\mathrm{pos}\|_2$ PD-BT'},'interpreter','latex','fontsize',13,'Location','best')
-        legend boxoff
     end
 end

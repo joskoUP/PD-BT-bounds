@@ -11,7 +11,7 @@ rng(1, "twister")
 % 2D heat equation
 spat_dim    = 50;
 % spatial points considered for the heat equation system matrix, meaning
-% that the distance between 2 spatial points is h = 1/51
+% that the distance between 2 adjacent spatial points is h = 1/(spat_dim+1)
 
 % 1D heat equation matrix: alpha(=0.1) * 1/(h^2) * tridiag[1,-2,1]
 A1          = 0.1*(spat_dim+1)^2*(diag(-2*ones(spat_dim, 1)) + ...
@@ -21,12 +21,12 @@ A           = kron(A1, eye(spat_dim)) + kron(eye(spat_dim), A1);
 d           = size(A, 1);
 C           = ones(1, d) / d; % output is the mean temperature
 d_out       = size(C, 1);
-sig_obs     = 0.08;
+sig_obs     = 0.08;  % standard deviation of noise for each measurement 
 
 % define time frame (measurement times) for the inference problem
 T               = 5; % end time
-dt_obs          = 0.2; % difference between measurements   
-n               = round(T / dt_obs); % number of measurements
+dt_obs          = 0.2; % difference between consecutive measurement times   
+n               = round(T / dt_obs); % number of measurement times
 sig_obs_long    = repmat(sig_obs, n, 1);
 
 figure; clf
@@ -55,7 +55,7 @@ for scale_count = 1:length(scaling_factors)
     Xs                  = X(:, ind);
     Gamma_pr_root       = Xs(:, 1:prior_rank) ...
                         * sqrt(Ds(1:prior_rank, 1:prior_rank));
-    indmax              = 31;
+    indmax              = 31; % upper bound on rank parameter to be used for experiments
 
     L_pr    = Gamma_pr_root;
 
@@ -89,7 +89,7 @@ for scale_count = 1:length(scaling_factors)
         temp                        = temp*iter;
         G((i-1)*d_out+1:i*d_out,:)  = temp;
     end
-    % compute Fisher info
+    % compute Fisher information a.k.a. Hessian of negative log-likelihood
     Go  = G./sig_obs_long;
     H   = Go'*Go;
     
@@ -107,7 +107,7 @@ for scale_count = 1:length(scaling_factors)
     PosMean_true    = PosCov_true*full_rhs;
     
     %% compute posterior approximations and errors
-    r_vals      = 1:2:indmax;
+    r_vals      = 1:2:indmax; % array of rank values to be used for experiments and plots
     rmax        = max(r_vals);
     
     % prior-driven balancing (PD-BT)
